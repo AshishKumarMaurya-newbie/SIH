@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+indic-transliteration
+langdetect
+twilio
+deep-translator
+langchain
+langchain-google-genai
+langchain-community
+faiss-cpu
+python-multipart
+langchain-huggingface
