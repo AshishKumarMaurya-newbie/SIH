@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from indic_transliteration import sanscript
 from indic_transliteration.sanscript import transliterate
@@ -31,6 +32,9 @@ client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
 vector_store = None
 qa_chain = None
+
+class ChatRequest(BaseModel):
+    message: str
 
 def initialize_rag_system():
     global vector_store, qa_chain
@@ -195,47 +199,34 @@ async def root():
     return {"status": "ok"}
 
 @app.post("/chat")
-async def chat_endpoint(request: Request):
-    """
-    Endpoint for frontend apps to send queries and get responses.
-    Accepts JSON: { "message": "..." }
-    """
-    try:
-        data = await request.json()
-        user_message = data.get("message", "")
+async def chat_endpoint(payload: ChatRequest):
+    user_message = payload.message.strip()
 
-        if not user_message:
-            return JSONResponse({"error": "Message is required"}, status_code=400)
+    if not user_message:
+        return JSONResponse({"error": "Message is required"}, status_code=400)
 
-        # Detect language
-        detected_lang = detect_language_smart(user_message)
-        print(f"[Frontend] Detected language: {detected_lang}")
+    # Detect language
+    detected_lang = detect_language_smart(user_message)
+    print(f"[Frontend] Detected language: {detected_lang}")
 
-        if detected_lang in ["sw", "id", "ms", "so", "af", "tl"]:
-            detected_lang = "hinglish"
+    if detected_lang in ["sw", "id", "ms", "so", "af", "tl"]:
+        detected_lang = "hinglish"
 
-        if detected_lang == "hinglish":
-            english_text = handle_hinglish(user_message, to_english=True)
-            answer_en = process_user_query(english_text)
-            final_answer = handle_hinglish(answer_en, to_english=False)
+    if detected_lang == "hinglish":
+        english_text = handle_hinglish(user_message, to_english=True)
+        answer_en = process_user_query(english_text)
+        final_answer = handle_hinglish(answer_en, to_english=False)
 
-        elif detected_lang == "en":
-            english_text = user_message
-            final_answer = process_user_query(english_text)
+    elif detected_lang == "en":
+        english_text = user_message
+        final_answer = process_user_query(english_text)
 
-        else:
-            english_text = smart_translate(user_message, detected_lang, "en")
-            answer_en = process_user_query(english_text)
-            final_answer = smart_translate(answer_en, "en", detected_lang)
+    else:
+        english_text = smart_translate(user_message, detected_lang, "en")
+        answer_en = process_user_query(english_text)
+        final_answer = smart_translate(answer_en, "en", detected_lang)
 
-        return JSONResponse({"answer": final_answer, "language": detected_lang})
-
-    except Exception as e:
-        print(f"Error in /chat: {e}")
-        return JSONResponse(
-            {"error": "Something went wrong while processing your request"},
-            status_code=500
-        )
+    return JSONResponse({"answer": final_answer, "language": detected_lang})
 
 @app.post("/webhook")
 async def whatsapp_webhook(Body: str = Form(...), From: str = Form(...)):
