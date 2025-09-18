@@ -9,7 +9,8 @@ from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 from deep_translator import GoogleTranslator
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
@@ -43,7 +44,7 @@ def initialize_rag_system():
             max_tokens=1024
         )
 
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        embeddings = HuggingFaceEmbeddings(model="all-MiniLM-L6-v2")
         
         knowledge_file = "knowledge_base.txt"
         
@@ -84,7 +85,7 @@ def initialize_rag_system():
                 llm=llm,
                 chain_type="stuff",
                 retriever=vector_store.as_retriever(
-                    search_kwargs={"k": 3}  
+                    search_kwargs={"k": 5}  
                 ),
                 chain_type_kwargs={"prompt": PROMPT},
                 return_source_documents=True
